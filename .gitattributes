@@ -1,0 +1,12 @@
+# Projeto exclusivamente Windows: final de linha CRLF na cópia de trabalho.
+* text=auto eol=crlf
+
+# UTF-16LE — o git NÃO pode normalizar, senão o kbdutool não lê mais o arquivo.
+*.klc -text
+
+# Binários
+*.dll binary
+*.exe binary
+*.msi binary
+*.obj binary
+*.res binary

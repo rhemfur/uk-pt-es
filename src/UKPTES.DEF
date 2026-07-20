@@ -1,0 +1,4 @@
+LIBRARY UKPTES
+ 
+ EXPORTS 
+    KbdLayerDescriptor @1

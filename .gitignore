@@ -1,0 +1,17 @@
+# saída do compilador do instalador — o .exe vai para o GitHub Releases,
+# não para dentro do repositório
+dist/
+
+# artefatos de compilação da DLL (src\build-arm64.bat)
+*.obj
+*.res
+*.exp
+*.lib
+*.pdb
+
+# logs dos scripts
+*.log
+
+# cópias de conflito criadas pelo OneDrive quando duas máquinas editam junto
+*-LAPTOP-*
+*-DESKTOP-*
