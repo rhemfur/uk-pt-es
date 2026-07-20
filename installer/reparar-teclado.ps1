@@ -59,6 +59,10 @@ if (-not (Test-Path $nativeDll)) {
 
 Write-Host "Arquitetura detectada: $archName" -ForegroundColor Cyan
 
+# --- tira pendencias de boot que apagariam a DLL que vamos copiar ---
+$limpar = Join-Path $here 'limpar-pendencias.ps1'
+if (Test-Path $limpar) { & $limpar }
+
 # --- recopia as DLLs ---
 Copy-Item $nativeDll (Join-Path $env:SystemRoot 'System32\UKPTES.dll') -Force
 Copy-Item (Join-Path $bin 'UKPTES_wow64.dll') (Join-Path $env:SystemRoot 'SysWOW64\UKPTES.dll') -Force

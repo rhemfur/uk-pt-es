@@ -40,6 +40,10 @@ function Write-Log {
 Write-Log "=== Mode=$Mode RemoveOthers=$RemoveOthers Klid=$Klid Tip=$tip ==="
 Write-Log "Conta: $env:USERNAME"
 
+# Nota: a limpeza de PendingFileRenameOperations fica em limpar-pendencias.ps1,
+# chamado pelo instalador la no InitializeSetup — precisa acontecer ANTES de o
+# Inno decidir que ha reinicio pendente e abortar.
+
 # --------------------------------------------------------------------------
 # 1. lista de idiomas de entrada da conta
 # --------------------------------------------------------------------------

@@ -103,7 +103,12 @@ Source: "..\bin\UKPTES_wow64.dll"; DestDir: "{syswow64}"; DestName: "UKPTES.dll"
 Source: "..\bin\*.dll";              DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "configurar-teclado.ps1";    DestDir: "{app}";     Flags: ignoreversion
 Source: "reparar-teclado.ps1";       DestDir: "{app}";     Flags: ignoreversion
+Source: "limpar-pendencias.ps1";     DestDir: "{app}";     Flags: ignoreversion
 Source: "..\README.md";              DestDir: "{app}";     Flags: ignoreversion isreadme
+
+; Extraído para {tmp} e executado ainda no InitializeSetup — antes de o Inno
+; avaliar se há reinício pendente. Ver LimparPendencias() no [Code].
+Source: "limpar-pendencias.ps1";     Flags: dontcopy noencryption
 
 [Registry]
 ; Registro do layout. O "Layout Id" precisa ser único na máquina, por isso é
@@ -210,6 +215,37 @@ begin
   { faixa toda ocupada — improvável; usa o valor histórico }
   CachedLayoutId := '00c1';
   Result := CachedLayoutId;
+end;
+
+{ Remove operações de boot pendentes que afetam a UKPTES.dll.
+
+  Precisa rodar bem cedo. Se uma desinstalação anterior deixou pendente um
+  "apagar C:\Windows\System32\UKPTES.dll" (porque a DLL estava em uso), então:
+    - o Inno aborta em "Preparing to Install" com o código 8, e nada é instalado;
+    - e se conseguisse instalar, o boot seguinte apagaria a DLL nova.
+  Por isso a limpeza é feita aqui no InitializeSetup, antes de tudo. }
+procedure LimparPendencias;
+var
+  Script: String;
+  ResultCode: Integer;
+begin
+  try
+    ExtractTemporaryFile('limpar-pendencias.ps1');
+  except
+    Exit;
+  end;
+
+  Script := ExpandConstant('{tmp}\limpar-pendencias.ps1');
+  if not Exec('powershell.exe',
+              '-NoProfile -ExecutionPolicy Bypass -File "' + Script + '"',
+              '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    Log('Nao foi possivel executar limpar-pendencias.ps1');
+end;
+
+function InitializeSetup(): Boolean;
+begin
+  LimparPendencias;
+  Result := True;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

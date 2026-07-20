@@ -93,6 +93,14 @@ dist/         saída do build (ignorada pelo git; o .exe vai para Releases)
 | Registro do layout | Inno Setup | `HKLM\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\a0000809` |
 | Lista de teclados da conta | `installer/configurar-teclado.ps1` | `Set-WinUserLanguageList` + limpeza de `Preload`/`Substitutes` |
 | Tela de logon / contas novas | idem | `Copy-UserInternationalSettingsToSystem` |
+| Pendências de boot | `installer/limpar-pendencias.ps1` | roda **antes de tudo** (`InitializeSetup`); ver abaixo |
+
+`limpar-pendencias.ps1` existe por causa de um detalhe chato: quando o layout está
+carregado na sessão, a DLL do System32 fica travada e o Windows adia a troca para o
+próximo boot, via `PendingFileRenameOperations`. Uma desinstalação deixa ali um
+"apagar `UKPTES.dll`" — e aí, se a pessoa reinstalasse antes de reiniciar, o Inno
+abortaria (`código 8`) e, se instalasse, o boot seguinte apagaria a DLL nova. O script
+remove só os pares que envolvem a nossa DLL e preserva todo o resto da fila do sistema.
 
 Detalhes do registro:
 
@@ -177,6 +185,17 @@ O instalador `.exe` não sofre disso.
 
 **Instalei e não mudou nada.**
 Saia da conta e entre de novo — layouts só recarregam no logon.
+
+**Reinstalei e o instalador pediu para reiniciar o computador.**
+Normal. Se o layout já estava em uso na sessão, a `UKPTES.dll` do System32 fica
+travada e o Windows só consegue substituí-la no próximo boot — o instalador agenda
+a troca e segue. Numa instalação nova (máquina que nunca teve o layout) isso não
+acontece: basta sair e entrar da conta.
+
+**Desinstalei e reinstalei sem reiniciar.**
+Funciona. O instalador limpa, logo no início, as operações de boot pendentes que
+sobraram da desinstalação — sem isso o Windows apagaria no boot seguinte a DLL
+recém-instalada, e o próprio Inno se recusaria a instalar (erro `código 8`).
 
 **O nome do teclado aparece com acentos errados.**
 Registro antigo, escrito por um `.ps1` sem BOM. Rodar o instalador `.exe` reescreve o
