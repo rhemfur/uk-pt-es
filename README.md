@@ -148,6 +148,26 @@ $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF
 
 ---
 
+## Trabalhando nas duas máquinas (PC x64 e Surface ARM64)
+
+Sincronize pelo **git**, não pelo OneDrive:
+
+```powershell
+git clone https://github.com/rhemfur/uk-pt-es.git
+```
+
+A pasta de trabalho vive dentro do OneDrive (`Documentos\Codex\GitHub\uk-pt-es`), mas
+o OneDrive **não é** o mecanismo de sincronização deste projeto. Quando duas máquinas
+editam a mesma árvore, o OneDrive cria cópias de conflito com o nome do computador —
+e ele faz isso inclusive com arquivos internos do git (`index`, `config`,
+`refs\heads\main`), o que corrompe o repositório. Já houve casos assim em outros
+projetos desta mesma pasta.
+
+Na prática: `git pull` antes de mexer, `git push` depois, e deixe o OneDrive
+sincronizar sozinho. Se aparecer algum arquivo `*-LAPTOP-*` ou `*-DESKTOP-*` dentro de
+`.git\`, apague a cópia de conflito — o `.gitignore` já ignora esse padrão na árvore de
+trabalho.
+
 ## Editar o layout
 
 1. Edite `src/UKPTES.klc` (é texto — seções `LAYOUT` e `DEADKEY`).
