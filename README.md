@@ -21,7 +21,9 @@ Feito para quem escreve nos três idiomas no mesmo teclado.
 2. Execute e aprove o UAC.
 3. Deixe marcada a opção **"Remover todos os outros teclados e deixar somente este"**
    se quiser que o Windows pare de voltar sozinho para o teclado US/BR.
-4. **Saia da sua conta do Windows e entre de novo.** Layouts de teclado só recarregam
+4. Marque **"Ditado por voz em português do Brasil (Win+H)"** se quiser ditar em
+   pt-BR — veja [Ditado por voz](#ditado-por-voz-em-português-winh) abaixo.
+5. **Saia da sua conta do Windows e entre de novo.** Layouts de teclado só recarregam
    no logon — não precisa reiniciar a máquina.
 
 O instalador detecta sozinho se a máquina é Intel/AMD (x64) ou ARM64 (Snapdragon) e
@@ -30,6 +32,33 @@ instala a DLL certa.
 > **SmartScreen:** o `.exe` não é assinado digitalmente, então o Windows mostra
 > "O Windows protegeu o computador". Clique em **Mais informações → Executar assim
 > mesmo**. Assinar exigiria um certificado de code signing pago.
+
+### Ditado por voz em português (Win+H)
+
+O ditado do Windows reconhece a voz no **idioma de entrada** ativo — não no idioma do
+teclado físico. Com o UKPTES sob "English (United Kingdom)", o `Win+H` dita em inglês,
+e quando você pede português o Windows tenta baixar o idioma na hora.
+
+Com a opção **"Ditado por voz em português do Brasil"** marcada, o instalador:
+
+- coloca o **mesmo teclado UKPTES** sob o idioma **Português (Brasil)**
+  (`0416:A0000809`) — as teclas não mudam nada;
+- junto com "Remover todos os outros teclados", deixa a conta com **um idioma só**:
+  nada de indicador `POR`/`ENG` na barra de tarefas e o `Win+Espaço` não troca nada;
+- baixa agora o reconhecimento de voz pt-BR (`Language.Basic` + `Language.Speech`,
+  *Features on Demand* do Windows Update) — **precisa de internet** e pode levar
+  alguns minutos. Sem internet, o teclado é instalado mesmo assim e o Windows oferece
+  o download na primeira vez que você ditar;
+- **fixa o idioma de exibição atual** (`Set-WinUILanguageOverride`), para os menus do
+  Windows não mudarem para português.
+
+O Windows pede **reinício** para ativar o reconhecimento de voz recém-instalado; o
+instalador oferece reiniciar na última tela. Depois disso: clique onde quer escrever,
+aperte `Win+H` e fale.
+
+Esses componentes não vão dentro do `.exe`: são da Microsoft, específicos de cada
+versão do Windows e não redistribuíveis. A desinstalação do UKPTES não os remove
+(são inofensivos; dá para tirar em **Configurações → Hora e idioma**).
 
 ### Desinstalar
 
@@ -93,6 +122,7 @@ dist/         saída do build (ignorada pelo git; o .exe vai para Releases)
 | Registro do layout | Inno Setup | `HKLM\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\a0000809` |
 | Lista de teclados da conta | `installer/configurar-teclado.ps1` | `Set-WinUserLanguageList` + limpeza de `Preload`/`Substitutes` |
 | Tela de logon / contas novas | idem | `Copy-UserInternationalSettingsToSystem` |
+| Voz pt-BR (opção de ditado) | `installer/instalar-fala.ps1` | `Add-WindowsCapability` de `Language.Basic` e `Language.Speech` pt-BR |
 | Pendências de boot | `installer/limpar-pendencias.ps1` | roda **antes de tudo** (`InitializeSetup`); ver abaixo |
 
 `limpar-pendencias.ps1` existe por causa de um detalhe chato: quando o layout está
@@ -112,7 +142,8 @@ Detalhes do registro:
   entre *todos* os layouts da máquina; o instalador varre os já registrados e escolhe
   o primeiro livre a partir de `00c1` (reaproveitando o anterior se já houver um).
 - `Layout Display Name` = `@%SystemRoot%\system32\UKPTES.dll,-1000`
-- InputMethodTip da conta: `0809:A0000809`
+- InputMethodTip da conta: `0809:A0000809` (ou `0416:A0000809` com a opção de ditado,
+  com `Preload` `1 = 00000416` e `Substitutes` `00000416 → a0000809`)
 
 ---
 
@@ -231,7 +262,7 @@ A lista de teclados é por conta. Logue nela e rode o instalador lá também.
 Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\a0000809'
 # a DLL existe?
 Test-Path C:\Windows\System32\UKPTES.dll
-# a conta está usando só ele?  (esperado: 0809:A0000809)
+# a conta está usando só ele?  (esperado: 0809:A0000809, ou 0416:A0000809 com ditado)
 (Get-WinUserLanguageList).InputMethodTips
 ```
 
@@ -253,3 +284,6 @@ Os scripts do instalador deixam log em `%TEMP%\ukptes-configurar.log`.
 - **jul/2026** — este instalador `.exe` (Inno Setup), que substitui os scripts avulsos:
   arquitetura automática, `Layout Id` sem conflito, desinstalador de verdade e o texto
   acentuado escrito pelo próprio Inno, imune ao problema de BOM.
+- **nov/2026** — **1.1.0**: opção de ditado por voz em pt-BR (`Win+H`) sem indicador de
+  idioma na barra — o UKPTES passa a ficar sob Português (Brasil) e o reconhecimento de
+  voz pt-BR é instalado junto.
