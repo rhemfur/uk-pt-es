@@ -12,7 +12,7 @@
 
 #define AppName        "Teclado Reino Unido - Português e Espanhol"
 #define AppShortName   "UKPTES"
-#define AppVersion     "1.0.0"
+#define AppVersion     "1.1.0"
 #define AppPublisher   "Rhener Furtado"
 #define AppUrl         "https://github.com/rhemfur/uk-pt-es"
 #define Klid           "a0000809"
@@ -63,6 +63,9 @@ brazilianportuguese.RemoveOthersInfo=Recomendado. Impede que o Windows volte soz
 brazilianportuguese.RepairName=Reparar teclado (após atualização do Windows)
 brazilianportuguese.ConfiguringUser=Configurando o teclado da sua conta...
 brazilianportuguese.RestoringUser=Restaurando os teclados da sua conta...
+brazilianportuguese.Ditado=Ditado por voz em português do Brasil (Win+H)
+brazilianportuguese.DitadoInfo=O teclado fica sob o idioma Português (Brasil) e o reconhecimento de voz pt-BR é baixado agora (precisa de internet; pode levar alguns minutos). Junto com a opção acima, a conta fica com um idioma só: sem indicador de idioma na barra de tarefas.
+brazilianportuguese.InstallingSpeech=Baixando o reconhecimento de voz em português (pode levar alguns minutos)...
 brazilianportuguese.FinishedInfo=Instalação concluída. Saia da sua conta do Windows e entre de novo para o teclado passar a valer.
 
 english.RemoveOthers=Remove all other keyboards and keep only this one
@@ -70,6 +73,9 @@ english.RemoveOthersInfo=Recommended. Stops Windows from switching back to US/BR
 english.RepairName=Repair keyboard (after a Windows update)
 english.ConfiguringUser=Configuring the keyboard for your account...
 english.RestoringUser=Restoring your account's keyboards...
+english.Ditado=Voice typing in Brazilian Portuguese (Win+H)
+english.DitadoInfo=The keyboard goes under the Portuguese (Brazil) language and pt-BR speech recognition is downloaded now (needs internet; may take a few minutes). Together with the option above, the account has a single language: no language indicator on the taskbar.
+english.InstallingSpeech=Downloading Portuguese speech recognition (may take a few minutes)...
 english.FinishedInfo=Installation finished. Sign out of Windows and sign back in for the keyboard to take effect.
 
 spanish.RemoveOthers=Quitar todos los demás teclados y dejar solo este
@@ -77,10 +83,14 @@ spanish.RemoveOthersInfo=Recomendado. Evita que Windows vuelva solo al teclado U
 spanish.RepairName=Reparar teclado (tras una actualización de Windows)
 spanish.ConfiguringUser=Configurando el teclado de tu cuenta...
 spanish.RestoringUser=Restaurando los teclados de tu cuenta...
+spanish.Ditado=Dictado por voz en portugués de Brasil (Win+H)
+spanish.DitadoInfo=El teclado queda bajo el idioma Portugués (Brasil) y se descarga ahora el reconocimiento de voz pt-BR (necesita internet; puede tardar unos minutos). Junto con la opción de arriba, la cuenta queda con un solo idioma: sin indicador de idioma en la barra de tareas.
+spanish.InstallingSpeech=Descargando el reconocimiento de voz en portugués (puede tardar unos minutos)...
 spanish.FinishedInfo=Instalación finalizada. Cierra la sesión de Windows y vuelve a entrar para que el teclado surta efecto.
 
 [Tasks]
 Name: "removeothers"; Description: "{cm:RemoveOthers}"; GroupDescription: "{cm:RemoveOthersInfo}"
+Name: "ditado";       Description: "{cm:Ditado}";       GroupDescription: "{cm:DitadoInfo}"
 
 [Files]
 ; O compilador avisa "Unsafe flag usage ... ignoreversion ... {sys}". É esperado
@@ -104,6 +114,7 @@ Source: "..\bin\*.dll";              DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "configurar-teclado.ps1";    DestDir: "{app}";     Flags: ignoreversion
 Source: "reparar-teclado.ps1";       DestDir: "{app}";     Flags: ignoreversion
 Source: "limpar-pendencias.ps1";     DestDir: "{app}";     Flags: ignoreversion
+Source: "instalar-fala.ps1";         DestDir: "{app}";     Flags: ignoreversion
 Source: "..\README.md";              DestDir: "{app}";     Flags: ignoreversion isreadme
 
 ; Extraído para {tmp} e executado ainda no InitializeSetup — antes de o Inno
@@ -130,14 +141,17 @@ Name: "{group}\{cm:RepairName}"; Filename: "powershell.exe"; \
 
 [Run]
 ; Parte por usuário: lista de idiomas de entrada da conta que está instalando.
+; Os argumentos extras (-RemoveOthers / -Ditado) saem das tarefas: ConfigArgs.
 Filename: "powershell.exe"; \
-    Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\configurar-teclado.ps1"" -Mode Install -Klid {#Klid} -RemoveOthers"; \
-    StatusMsg: "{cm:ConfiguringUser}"; Tasks: removeothers; \
+    Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\configurar-teclado.ps1"" -Mode Install -Klid {#Klid}{code:ConfigArgs}"; \
+    StatusMsg: "{cm:ConfiguringUser}"; \
     Flags: runhidden waituntilterminated
 
+; Reconhecimento de voz pt-BR (Feature on Demand, vem do Windows Update).
+; Roda depois do teclado: se não houver internet, o teclado já está pronto.
 Filename: "powershell.exe"; \
-    Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\configurar-teclado.ps1"" -Mode Install -Klid {#Klid}"; \
-    StatusMsg: "{cm:ConfiguringUser}"; Tasks: not removeothers; \
+    Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\instalar-fala.ps1"" -Language pt-BR -RestartFlag ""{tmp}\fala-reiniciar.flag"""; \
+    StatusMsg: "{cm:InstallingSpeech}"; Tasks: ditado; \
     Flags: runhidden waituntilterminated
 
 [UninstallRun]
@@ -215,6 +229,24 @@ begin
   { faixa toda ocupada — improvável; usa o valor histórico }
   CachedLayoutId := '00c1';
   Result := CachedLayoutId;
+end;
+
+{ Argumentos extras do configurar-teclado.ps1, conforme as tarefas marcadas. }
+function ConfigArgs(Param: String): String;
+begin
+  Result := '';
+  if WizardIsTaskSelected('removeothers') then
+    Result := Result + ' -RemoveOthers';
+  if WizardIsTaskSelected('ditado') then
+    Result := Result + ' -Ditado';
+end;
+
+{ O reconhecimento de voz (Add-WindowsCapability) só passa a valer depois de
+  reiniciar. instalar-fala.ps1 cria este arquivo quando o Windows pede reinício,
+  e aí o Inno oferece reiniciar na última tela. }
+function NeedRestart(): Boolean;
+begin
+  Result := FileExists(ExpandConstant('{tmp}\fala-reiniciar.flag'));
 end;
 
 { Remove operações de boot pendentes que afetam a UKPTES.dll.
